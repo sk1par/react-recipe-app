@@ -1,56 +1,72 @@
-import React, { useEffect, useState } from "react";
-import './App.css';
-import Recipe from "./Recipe";
+import React, { useState } from "react";
+import "./App.css";
+import Axios from "axios";
+import { v4 as uuidv4 } from "uuid";
+import Recipe from "./components/Recipe";
+import Alert from "./components/Alert";
+import Loader from 'react-loader-spinner';
 
-const App = () => {
-  const APP_ID = '538ca9ee';
-  const APP_KEY = 'f5d4e72ce64e519ce6d1a271d58191e2';
-
+function App() {
+  const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState([]);
-  const [search, setSearch] = useState('');
-  const [query, setQuery] = useState('chicken');
+  const [alert, setAlert] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    getRecipes();
-  }, [query])
+  const APP_ID = "4e9f05eb";
+  const APP_KEY = "9b904d703fa0d46a88ce1ac63f29f498";
 
-  const getRecipes = async () => {
-    const response = await fetch(`https://api.edamam.com/search?q=${query}&app_id=${APP_ID}&app_key=${APP_KEY}`);
-    const data = await response.json();
-    setRecipes(data.hits);
+  const url = `https://api.edamam.com/search?q=${query}&app_id=${APP_ID}&app_key=${APP_KEY}`;
+
+  const getData = async () => {
+    if (query !== "") {
+      setRecipes([]);
+      setLoading(true);
+      const result = await Axios.get(url);
+      if (!result.data.more) {
+        setLoading(false)
+        return setAlert("No food with such name");
+      }
+      console.log(result);
+      setRecipes(result.data.hits);
+      setQuery("");
+      setAlert("");
+      setLoading(false)
+    } else {
+      setAlert("Please fill the form");
+    }
   };
 
-  const updateSearch = e => {
-    setSearch(e.target.value)
-  }
+  const onChange = e => setQuery(e.target.value);
 
-  const getSearch = e => {
+  const onSubmit = e => {
     e.preventDefault();
-    setQuery(search);
-    setSearch('');
-  }
+    getData();
+  };
 
   return (
     <div className="App">
-      <form onSubmit={getSearch} action="" className="search-form">
-        <input type="text" className="search-bar" value={search} onChange={updateSearch} />
-        <button type="submit" className="search-button">Search</button>
+      <h1>Food Searching App</h1>
+      <form onSubmit={onSubmit} className="search-form">
+        {alert !== "" && <Alert alert={alert} />}
+        <input
+          type="text"
+          name="query"
+          onChange={onChange}
+          value={query}
+          autoComplete="off"
+          placeholder="Search Food"
+        />
+        <input type="submit" value="Search" />
       </form>
       <div className="recipes">
-        {recipes.map(recipe => (
-          <Recipe
-            key={recipe.recipe.label}
-            title={recipe.recipe.label}
-            calories={recipe.recipe.calories}
-            image={recipe.recipe.image}
-            ingredients={recipe.recipe.ingredients}
-          />
-        ))}
-      </div>
-      <div>
+        {
+          loading && <Loader type="Circles" color="#00BFFF" height={80} width={80}/>
+        }
+        {recipes !== [] &&
+          recipes.map(recipe => <Recipe key={uuidv4()} recipe={recipe} />)}
       </div>
     </div>
-  )
+  );
 }
 
 export default App;
